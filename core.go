@@ -16,12 +16,6 @@ limitations under the License.
 
 package oauth22
 
-import (
-	"crypto/rand"
-	"encoding/base64"
-	"errors"
-)
-
 // AbstractUser is an abstract type representing the current user in the system.
 type AbstractUser interface{}
 
@@ -49,12 +43,12 @@ func (c *Client) Init() error {
 func (c *Client) generateCredentials() error {
 	var err error
 
-	c.ID, err = generateToken(32)
+	c.ID, err = secureToken(32)
 	if err != nil {
 		return err
 	}
 
-	c.Secret, err = generateToken(32)
+	c.Secret, err = secureToken(32)
 	if err != nil {
 		return err
 	}
@@ -86,34 +80,4 @@ type AccessToken struct {
 	ExpiresIn    int64
 	RefreshToken string
 	Scope        string
-}
-
-// generateToken generates a random sequence of N bytes and returns it encoded as base64
-func generateToken(nBytes int) (string, error) {
-	r := make([]byte, nBytes)
-
-	n, err := rand.Read(r)
-	if err != nil {
-		return "", err
-	}
-	if nBytes != n {
-		return "", errors.New("unexpected length for generated string")
-	}
-
-	return base64.RawURLEncoding.EncodeToString(r), nil
-}
-
-// secureCompare will compare two slice of bytes in constant time, ensuring no timing information
-// is leaked in order to prevent timing attacks.
-func secureCompare(a, b []byte) bool {
-	if len(a) != len(b) {
-		return false
-	}
-
-	var result byte
-	for i := 0; i < len(a); i++ {
-		result |= a[i] ^ b[i]
-	}
-
-	return result == 0
 }
