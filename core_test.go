@@ -17,6 +17,7 @@ limitations under the License.
 package oauth22
 
 import (
+	"reflect"
 	"testing"
 )
 
@@ -33,5 +34,22 @@ func TestClientCredentials(t *testing.T) {
 
 	if c.Secret == "" {
 		t.Fatal("Secret not properly initialized")
+	}
+}
+
+func TestNewAccessToken(t *testing.T) {
+	c := Client{Name: "Test Client", RedirectURI: "https://example.test/oauth2/callback"}
+
+	at, err := NewAccessToken(c, []string{"basic"})
+	if err != nil {
+		t.Error(err)
+	}
+
+	if at.Token == "" {
+		t.Fatal("token not properly generated")
+	}
+
+	if !reflect.DeepEqual([]string{"basic"}, at.Scopes) {
+		t.Fatal("access token scopes not properly initialized")
 	}
 }

@@ -16,6 +16,10 @@ limitations under the License.
 
 package oauth22
 
+import (
+	"time"
+)
+
 // AbstractUser is an abstract type representing the current user in the system.
 type AbstractUser interface{}
 
@@ -88,11 +92,26 @@ func (o *OptionalUserAuthorization) Present() bool {
 // https://tools.ietf.org/html/rfc6749#section-1.1
 // https://tools.ietf.org/html/rfc6749#section-1.4
 type AccessToken struct {
-	Client            Client
-	UserAuthorization *UserAuthorization
-
+	Client       Client
 	Token        string
-	ExpiresIn    int64
+	ExpiresIn    time.Duration
 	RefreshToken string
-	Scope        string
+	Scopes       []string
+}
+
+// NewAccessToken creates a new AccessToken with the provided information and sensible defaults.
+func NewAccessToken(c Client, scopes []string) (*AccessToken, error) {
+	t, err := secureToken(256)
+	if err != nil {
+		return nil, err
+	}
+
+	at := AccessToken{
+		Client:    c,
+		Token:     t,
+		Scopes:    scopes,
+		ExpiresIn: (24 * time.Hour) * 15,
+	}
+
+	return &at, nil
 }
