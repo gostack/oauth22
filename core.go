@@ -56,15 +56,30 @@ func (c *Client) generateCredentials() error {
 	return nil
 }
 
+// UserAuthorizationRequest represents a request for a UserAuthorization
+type UserAuthorizationRequest struct {
+	Client Client
+	Scope  []string
+}
+
 // UserAuthorization represents an explicit authorization given by the user to a specific client application.
 //
 // Related RFC topics:
 // https://tools.ietf.org/html/rfc6749#section-4.1
 // https://tools.ietf.org/html/rfc6749#section-4.2
 type UserAuthorization struct {
-	Client       Client
-	Scope        []string
+	UserAuthorizationRequest
 	RefreshToken []byte
+}
+
+// OptionalUserAuthorization simply wraps an UserAuthorization with the ability of being optional.
+type OptionalUserAuthorization struct {
+	UserAuthorization
+	present bool
+}
+
+func (o *OptionalUserAuthorization) Present() bool {
+	return o.present
 }
 
 // AccessToken represents an OAuth2 Access Token issued for an application.
@@ -73,8 +88,8 @@ type UserAuthorization struct {
 // https://tools.ietf.org/html/rfc6749#section-1.1
 // https://tools.ietf.org/html/rfc6749#section-1.4
 type AccessToken struct {
-	Client        Client
-	Authorization UserAuthorization
+	Client            Client
+	UserAuthorization *UserAuthorization
 
 	Token        string
 	ExpiresIn    int64
