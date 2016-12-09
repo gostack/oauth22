@@ -1,0 +1,25 @@
+{
+	"comment": "",
+	"ignore": "test",
+	"package": [
+		{
+			"checksumSHA1": "qyf8Sl27bVgbnYyc5lKYjZ5+1ZQ=",
+			"path": "github.com/gostack/option",
+			"revision": "ff3d4ca0848e57d2bb3fdd07d271269031f61b01",
+			"revisionTime": "2016-10-24T23:16:53Z"
+		},
+		{
+			"checksumSHA1": "QlyDgRnXtg+tzn/qHzi/v1dpiwk=",
+			"path": "github.com/husobee/vestigo",
+			"revision": "63212b7203741406c7ff0696d26a251cccb38341",
+			"revisionTime": "2016-11-14T19:25:38Z"
+		},
+		{
+			"checksumSHA1": "zmC8/3V4ls53DJlNTKDZwPSC/dA=",
+			"path": "github.com/satori/go.uuid",
+			"revision": "b061729afc07e77a8aa4fad0a2fd840958f1942a",
+			"revisionTime": "2016-09-27T10:08:44Z"
+		}
+	],
+	"rootPath": "github.com/gostack/oauth22/srvauth"
+}

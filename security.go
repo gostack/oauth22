@@ -18,28 +18,27 @@ package oauth22
 
 import (
 	"crypto/rand"
-	"encoding/base64"
 	"errors"
 )
 
-// secureToken generates a random sequence of N bytes and returns it encoded as base64
-func secureToken(nBytes uint16) (string, error) {
-	r := make([]byte, nBytes)
+// secureBytes generates a random sequence of N bytes
+func secureBytes(n uint16) ([]byte, error) {
+	r := make([]byte, n)
 
-	n, err := rand.Read(r)
+	count, err := rand.Read(r)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
-	if nBytes != uint16(n) {
-		return "", errors.New("unexpected length for generated string")
+	if n != uint16(count) {
+		return nil, errors.New("unexpected length for generated string")
 	}
 
-	return base64.RawURLEncoding.EncodeToString(r), nil
+	return r, nil
 }
 
-// secureCompare will compare two slice of bytes in constant time, ensuring no timing information
+// SecureCompare will compare two slice of bytes in constant time, ensuring no timing information
 // is leaked in order to prevent timing attacks.
-func secureCompare(a, b []byte) bool {
+func SecureCompare(a, b []byte) bool {
 	if len(a) != len(b) {
 		return false
 	}

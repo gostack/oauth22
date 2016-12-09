@@ -17,9 +17,33 @@ limitations under the License.
 package oauth22
 
 import (
+	"bytes"
 	"reflect"
 	"testing"
 )
+
+func TestSecretMarshaling(t *testing.T) {
+	b, err := secureBytes(512)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	s := Secret(b)
+	text, err := s.MarshalText()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	s = Secret{}
+	err = s.UnmarshalText(text)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !bytes.Equal(b, s) {
+		t.Error("marshaled and unmarshaled secret doesn't match")
+	}
+}
 
 func TestClientCredentials(t *testing.T) {
 	c := Client{Name: "Test Client", RedirectURI: "https://example.test/oauth2/callback"}
@@ -28,11 +52,11 @@ func TestClientCredentials(t *testing.T) {
 		t.Error(err)
 	}
 
-	if c.ID == "" {
+	if reflect.DeepEqual(c.ID, []byte("")) {
 		t.Fatal("ID not properly initialized")
 	}
 
-	if c.Secret == "" {
+	if reflect.DeepEqual(c.Secret, []byte("")) {
 		t.Fatal("Secret not properly initialized")
 	}
 }
@@ -45,7 +69,7 @@ func TestNewAccessToken(t *testing.T) {
 		t.Error(err)
 	}
 
-	if at.Token == "" {
+	if reflect.DeepEqual(at.Token, []byte("")) {
 		t.Fatal("token not properly generated")
 	}
 

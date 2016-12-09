@@ -20,29 +20,28 @@ import (
 	"testing"
 )
 
-func TestSecureToken(t *testing.T) {
+func TestSecureBytes(t *testing.T) {
 	max := ^uint16(0)
 
 	table := []struct {
 		nBytes uint16
-		length uint32
 	}{
-		{nBytes: 32, length: 43},
-		{nBytes: 64, length: 86},
-		{nBytes: 128, length: 171},
-		{nBytes: 256, length: 342},
-		{nBytes: 1024, length: 1366},
-		{nBytes: 4096, length: 5462},
-		{nBytes: max, length: 87380},
+		{nBytes: 32},
+		{nBytes: 64},
+		{nBytes: 128},
+		{nBytes: 256},
+		{nBytes: 1024},
+		{nBytes: 4096},
+		{nBytes: max},
 	}
 
 	for i, e := range table {
-		tk, err := secureToken(e.nBytes)
+		tk, err := secureBytes(e.nBytes)
 		if err != nil {
 			t.Error(err)
 		}
-		if uint32(len(tk)) != e.length {
-			t.Errorf("entry #%d: expected token with %d bytes to be encoded in %d characters but was %d", i, e.nBytes, e.length, len(tk))
+		if uint16(len(tk)) != e.nBytes {
+			t.Errorf("entry #%d: expected token to have %d bytes but it had %d", i, e.nBytes, len(tk))
 		}
 	}
 }
@@ -65,7 +64,7 @@ func TestSecureCompare(t *testing.T) {
 			r = "not match"
 		}
 
-		if secureCompare([]byte(e.A), []byte(e.B)) != e.Result {
+		if SecureCompare([]byte(e.A), []byte(e.B)) != e.Result {
 			t.Errorf("expected entry #%d with %s and %s to %s", i, e.A, e.B, r)
 		}
 	}

@@ -17,11 +17,32 @@ limitations under the License.
 package oauth22
 
 import (
+	"encoding/base64"
+	"github.com/satori/go.uuid"
 	"time"
 )
 
 // AbstractUser is an abstract type representing the current user in the system.
 type AbstractUser interface{}
+
+// Secret is a seq of bytes that knows how to serialize itself
+type Secret []byte
+
+func (s Secret) MarshalText() ([]byte, error) {
+	// Calculates the number of bytes necessary for the base64
+	// representation and pre-allocate it to avoid multiple allocations.
+	b := make([]byte, base64.RawURLEncoding.EncodedLen(len(s)))
+	base64.RawURLEncoding.Encode(b, s)
+	return b, nil
+}
+
+func (s *Secret) UnmarshalText(text []byte) error {
+	// Calculates the number of bytes necessary for the base64
+	// to be represented and pre-allocate it to avoid multiple allocations.
+	*s = make([]byte, base64.RawURLEncoding.DecodedLen(len(text)))
+	_, err := base64.RawURLEncoding.Decode(*s, text)
+	return err
+}
 
 // Client represents a known client application using this OAuth2 server to authenticate.
 //
@@ -29,8 +50,8 @@ type AbstractUser interface{}
 // https://tools.ietf.org/html/rfc6749#section-1.1
 // https://tools.ietf.org/html/rfc6749#section-2
 type Client struct {
-	ID           string
-	Secret       string
+	ID           uuid.UUID
+	Secret       Secret
 	Name         string
 	RedirectURI  string
 	Confidential bool
@@ -47,12 +68,8 @@ func (c *Client) Init() error {
 func (c *Client) generateCredentials() error {
 	var err error
 
-	c.ID, err = secureToken(32)
-	if err != nil {
-		return err
-	}
-
-	c.Secret, err = secureToken(32)
+	c.ID = uuid.NewV4()
+	c.Secret, err = secureBytes(128)
 	if err != nil {
 		return err
 	}
@@ -76,16 +93,6 @@ type UserAuthorization struct {
 	RefreshToken []byte
 }
 
-// OptionalUserAuthorization simply wraps an UserAuthorization with the ability of being optional.
-type OptionalUserAuthorization struct {
-	UserAuthorization
-	present bool
-}
-
-func (o *OptionalUserAuthorization) Present() bool {
-	return o.present
-}
-
 // AccessToken represents an OAuth2 Access Token issued for an application.
 //
 // Related RFC topics:
@@ -93,7 +100,7 @@ func (o *OptionalUserAuthorization) Present() bool {
 // https://tools.ietf.org/html/rfc6749#section-1.4
 type AccessToken struct {
 	Client       Client
-	Token        string
+	Token        []byte
 	ExpiresIn    time.Duration
 	RefreshToken string
 	Scopes       []string
@@ -101,7 +108,7 @@ type AccessToken struct {
 
 // NewAccessToken creates a new AccessToken with the provided information and sensible defaults.
 func NewAccessToken(c Client, scopes []string) (*AccessToken, error) {
-	t, err := secureToken(256)
+	t, err := secureBytes(256)
 	if err != nil {
 		return nil, err
 	}

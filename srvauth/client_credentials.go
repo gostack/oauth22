@@ -17,22 +17,26 @@ limitations under the License.
 package srvauth
 
 import (
-	"github.com/gostack/oauth22"
-	"net/http"
 	"net/url"
+	"strings"
+
+	"github.com/gostack/oauth22"
+	"github.com/gostack/option"
 )
 
-// HTTPHandlers encapsulates the entire HTTP handling of the OAuth2 protocol.
-// It delegates to underlying strategies
-type HTTPHandlers struct {
-	AuthorizationHandlers map[string]AuthorizationHandler
-	TokenHandlers         map[string]TokenHandler
+type ClientCredentials struct{}
+
+func (c ClientCredentials) ResponseType() (option.String, AuthorizationResponseType) {
+	return option.NoneString(), nil
 }
 
-type AuthorizationHandler interface {
-	Authorize(a *oauth22.UserAuthorizationRequest, w http.ResponseWriter)
+func (s ClientCredentials) GrantType() (option.String, TokenGrantType) {
+	return option.SomeString("client_credentials"), clientCredentialsGrantType{}
 }
 
-type TokenHandler interface {
-	IssueToken(c oauth22.Client, p url.Values) (oauth22.AccessToken, error)
+type clientCredentialsGrantType struct{}
+
+func (g clientCredentialsGrantType) IssueToken(c oauth22.Client, params url.Values) (*oauth22.AccessToken, error) {
+	scopes := strings.Split(params.Get("scope"), " ")
+	return oauth22.NewAccessToken(c, scopes)
 }
