@@ -28,6 +28,15 @@ type AbstractUser interface{}
 // Secret is a seq of bytes that knows how to serialize itself
 type Secret []byte
 
+func (s Secret) String() string {
+	str, err := s.MarshalText()
+	if err != nil {
+		return ""
+	}
+
+	return string(str)
+}
+
 func (s Secret) MarshalText() ([]byte, error) {
 	// Calculates the number of bytes necessary for the base64
 	// representation and pre-allocate it to avoid multiple allocations.
@@ -58,14 +67,8 @@ type Client struct {
 	Internal     bool
 }
 
-// Init
-// TODO(divoxx): Remove this
-func (c *Client) Init() error {
-	return c.generateCredentials()
-}
-
-// generateCredentials securely generate and initialize the Client's ID and Secret.
-func (c *Client) generateCredentials() error {
+// GenerateCredentials securely generate and initialize the Client's ID and Secret.
+func (c *Client) GenerateCredentials() error {
 	var err error
 
 	c.ID = uuid.NewV4()
@@ -99,15 +102,15 @@ type UserAuthorization struct {
 // https://tools.ietf.org/html/rfc6749#section-1.1
 // https://tools.ietf.org/html/rfc6749#section-1.4
 type AccessToken struct {
-	Client       Client
-	Token        []byte
-	ExpiresIn    time.Duration
-	RefreshToken string
-	Scopes       []string
+	Client       *Client       `json:"-"`
+	Token        []byte        `json:"access_token"`
+	ExpiresIn    time.Duration `json:"expires_in"`
+	RefreshToken string        `json:"refresh_token,omitempty"`
+	Scopes       []string      `json:"-"`
 }
 
 // NewAccessToken creates a new AccessToken with the provided information and sensible defaults.
-func NewAccessToken(c Client, scopes []string) (*AccessToken, error) {
+func NewAccessToken(c *Client, scopes []string) (*AccessToken, error) {
 	t, err := secureBytes(256)
 	if err != nil {
 		return nil, err

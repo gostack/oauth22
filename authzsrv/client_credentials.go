@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package srvauth
+package authzsrv
 
 import (
 	"net/url"
@@ -36,7 +36,7 @@ func (s ClientCredentials) GrantType() (option.String, TokenGrantType) {
 
 type clientCredentialsGrantType struct{}
 
-func (g clientCredentialsGrantType) IssueToken(c oauth22.Client, params url.Values) (*oauth22.AccessToken, error) {
+func (g clientCredentialsGrantType) IssueToken(c *oauth22.Client, params url.Values) (*oauth22.AccessToken, error) {
 	scopes := strings.Split(params.Get("scope"), " ")
 	return oauth22.NewAccessToken(c, scopes)
 }

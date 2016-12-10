@@ -14,22 +14,18 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package srvauth
+package authzsrv
 
 import (
+	"encoding/json"
 	"log"
 	"net/http"
 	"net/url"
 
 	"github.com/gostack/oauth22"
 	"github.com/gostack/option"
-	"github.com/husobee/vestigo"
 	"github.com/satori/go.uuid"
 )
-
-type Persistence interface {
-	LookupClient(ID uuid.UUID) (oauth22.Client, error)
-}
 
 // Strategy wraps the two optional interfaces that constitutes a OAuth2 strategies.
 // Strategies should implement at least one of the interfaces.
@@ -40,18 +36,19 @@ type Strategy interface {
 
 // AuthorizationResponseType is the interface that represents a valid OAuth2 response type, used by the authorization endpoint.
 type AuthorizationResponseType interface {
-	Confirm(ar oauth22.UserAuthorizationRequest, w http.ResponseWriter) error
-	Authorize(ar oauth22.UserAuthorizationRequest) (*oauth22.UserAuthorization, error)
+	Confirm(ar *oauth22.UserAuthorizationRequest, w http.ResponseWriter) error
+	Authorize(ar *oauth22.UserAuthorizationRequest) (*oauth22.UserAuthorization, error)
 }
 
 // TokenGrantType is the interface that represents a valid OAuth2 grant type, used by the token endpoint.
 type TokenGrantType interface {
-	IssueToken(c oauth22.Client, params url.Values) (*oauth22.AccessToken, error)
+	IssueToken(c *oauth22.Client, params url.Values) (*oauth22.AccessToken, error)
 }
 
+// Server is the main class that implements the OAuth2 authorization server.
 type Server struct {
 	persistence   Persistence
-	router        *vestigo.Router
+	mux           *http.ServeMux
 	responseTypes map[string]AuthorizationResponseType
 	grantTypes    map[string]TokenGrantType
 }
@@ -59,17 +56,17 @@ type Server struct {
 func NewServer(p Persistence) *Server {
 	srv := Server{
 		persistence:   p,
-		router:        vestigo.NewRouter(),
+		mux:           http.NewServeMux(),
 		responseTypes: make(map[string]AuthorizationResponseType),
 		grantTypes:    make(map[string]TokenGrantType),
 	}
 
-	srv.router.Post("token", srv.tokenEndpointHandler)
+	srv.mux.HandleFunc("/token", srv.tokenEndpointHandler)
 	return &srv
 }
 
 func (s Server) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-	s.router.ServeHTTP(w, req)
+	s.mux.ServeHTTP(w, req)
 }
 
 func (s *Server) RegisterStrategy(st Strategy) {
@@ -88,7 +85,7 @@ func (s *Server) RegisterStrategy(st Strategy) {
 	}
 }
 
-func (s Server) authenticateClientRequest(req *http.Request) (*oauth22.Client, *OAuth2Error) {
+func (s Server) authenticateClientRequest(req *http.Request) (*oauth22.Client, error) {
 	var textID, textSecret string
 
 	if req.Header.Get("Authorization") != "" {
@@ -103,7 +100,7 @@ func (s Server) authenticateClientRequest(req *http.Request) (*oauth22.Client, *
 	}
 
 	if textID == "" || textSecret == "" {
-		return nil, ErrInvalidRequest
+		return nil, ErrInvalidClient
 	}
 
 	var (
@@ -130,9 +127,54 @@ func (s Server) authenticateClientRequest(req *http.Request) (*oauth22.Client, *
 		return nil, ErrInvalidClient
 	}
 
-	return &c, nil
+	return c, nil
 }
 
 func (s Server) tokenEndpointHandler(w http.ResponseWriter, req *http.Request) {
+	c, err := s.authenticateClientRequest(req)
+	if err != nil {
+		respondError(w, err)
+		return
+	}
 
+	if err := req.ParseForm(); err != nil {
+		respondError(w, ErrInvalidRequest)
+		return
+	}
+
+	q := req.Form
+	qGrantType := q.Get("grant_type")
+	if qGrantType == "" {
+		respondError(w, ErrUnsupportedGrantType)
+		return
+	}
+
+	grantType, ok := s.grantTypes[qGrantType]
+	if !ok {
+		respondError(w, ErrUnsupportedGrantType)
+	}
+
+	accessToken, err := grantType.IssueToken(c, q)
+	if err != nil {
+		respondError(w, err)
+		return
+	}
+
+	respondJSON(w, accessToken)
+}
+
+func respondJSON(w http.ResponseWriter, v interface{}) {
+	if err := json.NewEncoder(w).Encode(v); err != nil {
+		panic(err)
+	}
+}
+
+func respondError(w http.ResponseWriter, err error) {
+	if err, ok := err.(OAuth2Error); ok {
+		w.WriteHeader(err.Code)
+		respondJSON(w, err)
+	} else {
+		w.WriteHeader(http.StatusInternalServerError)
+		respondJSON(w, ErrServerError)
+	}
 }
