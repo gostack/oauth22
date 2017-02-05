@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package oauth22
+package security
 
 import (
 	"testing"
@@ -22,6 +22,8 @@ import (
 
 func TestSecureBytes(t *testing.T) {
 	max := ^uint16(0)
+	t.Log(max)
+	t.FailNow()
 
 	table := []struct {
 		nBytes uint16
@@ -36,36 +38,12 @@ func TestSecureBytes(t *testing.T) {
 	}
 
 	for i, e := range table {
-		tk, err := secureBytes(e.nBytes)
+		tk, err := Random(e.nBytes)
 		if err != nil {
 			t.Error(err)
 		}
 		if uint16(len(tk)) != e.nBytes {
 			t.Errorf("entry #%d: expected token to have %d bytes but it had %d", i, e.nBytes, len(tk))
-		}
-	}
-}
-
-func TestSecureCompare(t *testing.T) {
-	table := []struct {
-		A, B   string
-		Result bool
-	}{
-		{"CZEXIa-mVtAvzrJV8-q-MGiynZf476lMo9Ba1Be4L3Y", "CZEXIa-mVtAvzrJV8-q-MGiynZf476lMo9Ba1Be4L3Y", true},
-		{"J1ye8B7nGPfImUiXS2xK9EQZT-3NuAG-Kt7qg51sAhU", "J1ye8B7nGPfImUiXS2xK9EQZT-3NuAG-Kt7qg51sAhU", true},
-		{"CZEXIa-mVtAvzrJV8-q-MGiynZf476lMo9Ba1Be4L3Y", "J1ye8B7nGPfImUiXS2xK9EQZT-3NuAG-Kt7qg51sAhU", false},
-	}
-
-	for i, e := range table {
-		var r string
-		if e.Result {
-			r = "match"
-		} else {
-			r = "not match"
-		}
-
-		if SecureCompare([]byte(e.A), []byte(e.B)) != e.Result {
-			t.Errorf("expected entry #%d with %s and %s to %s", i, e.A, e.B, r)
 		}
 	}
 }

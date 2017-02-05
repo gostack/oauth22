@@ -20,10 +20,12 @@ import (
 	"bytes"
 	"reflect"
 	"testing"
+
+	"github.com/gostack/oauth22/security"
 )
 
 func TestSecretMarshaling(t *testing.T) {
-	b, err := secureBytes(512)
+	b, err := security.Random(512)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -48,7 +50,7 @@ func TestSecretMarshaling(t *testing.T) {
 func TestClientCredentials(t *testing.T) {
 	c := Client{Name: "Test Client", RedirectURI: "https://example.test/oauth2/callback"}
 
-	if err := c.generateCredentials(); err != nil {
+	if err := c.GenerateCredentials(); err != nil {
 		t.Error(err)
 	}
 
@@ -64,7 +66,7 @@ func TestClientCredentials(t *testing.T) {
 func TestNewAccessToken(t *testing.T) {
 	c := Client{Name: "Test Client", RedirectURI: "https://example.test/oauth2/callback"}
 
-	at, err := NewAccessToken(c, []string{"basic"})
+	at, err := NewAccessToken(&c, []string{"basic"})
 	if err != nil {
 		t.Error(err)
 	}

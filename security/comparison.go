@@ -14,31 +14,11 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package oauth22
+package security
 
-import (
-	"crypto/rand"
-	"errors"
-)
-
-// secureBytes generates a random sequence of N bytes
-func secureBytes(n uint16) ([]byte, error) {
-	r := make([]byte, n)
-
-	count, err := rand.Read(r)
-	if err != nil {
-		return nil, err
-	}
-	if n != uint16(count) {
-		return nil, errors.New("unexpected length for generated string")
-	}
-
-	return r, nil
-}
-
-// SecureCompare will compare two slice of bytes in constant time, ensuring no timing information
+// Compare will compare two slice of bytes in constant time, ensuring no timing information
 // is leaked in order to prevent timing attacks.
-func SecureCompare(a, b []byte) bool {
+func Compare(a, b []byte) bool {
 	if len(a) != len(b) {
 		return false
 	}

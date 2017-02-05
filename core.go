@@ -18,8 +18,11 @@ package oauth22
 
 import (
 	"encoding/base64"
-	"github.com/satori/go.uuid"
 	"time"
+
+	"github.com/satori/go.uuid"
+
+	"github.com/gostack/oauth22/security"
 )
 
 // AbstractUser is an abstract type representing the current user in the system.
@@ -72,7 +75,7 @@ func (c *Client) GenerateCredentials() error {
 	var err error
 
 	c.ID = uuid.NewV4()
-	c.Secret, err = secureBytes(128)
+	c.Secret, err = security.Random(128)
 	if err != nil {
 		return err
 	}
@@ -111,7 +114,7 @@ type AccessToken struct {
 
 // NewAccessToken creates a new AccessToken with the provided information and sensible defaults.
 func NewAccessToken(c *Client, scopes []string) (*AccessToken, error) {
-	t, err := secureBytes(256)
+	t, err := security.Random(256)
 	if err != nil {
 		return nil, err
 	}
