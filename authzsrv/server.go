@@ -22,9 +22,11 @@ import (
 	"net/http"
 	"net/url"
 
-	"github.com/gostack/oauth22"
 	"github.com/gostack/option"
 	"github.com/satori/go.uuid"
+
+	"github.com/gostack/oauth22"
+	"github.com/gostack/oauth22/security"
 )
 
 // Strategy wraps the two optional interfaces that constitutes a OAuth2 strategies.
@@ -123,7 +125,7 @@ func (s Server) authenticateClientRequest(req *http.Request) (*oauth22.Client, e
 		return nil, ErrServerError
 	}
 
-	if !oauth22.SecureCompare(c.Secret, secret) {
+	if !security.Compare(c.Secret, secret) {
 		return nil, ErrInvalidClient
 	}
 
