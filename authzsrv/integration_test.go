@@ -17,7 +17,7 @@ limitations under the License.
 package authzsrv_test
 
 import (
-	"io"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -27,6 +27,20 @@ import (
 	"github.com/gostack/oauth22/authzsrv"
 )
 
+// TestUnsupportedGrantType ensures that clients sending an unsupported grant type will receive the
+// proper error response.
+func TestUnsupportedGrantType(t *testing.T) {
+	srvURL, teardown, client := setupTestServer(t, []authzsrv.Strategy{
+		authzsrv.ClientCredentials{},
+	})
+	defer teardown()
+
+	resp := doTokenRequest(t, srvURL, &client, "unsupported", "basic email")
+	defer resp.Body.Close()
+
+	verifyResponseErr(t, resp, authzsrv.ErrUnsupportedGrantType)
+}
+
 // TestClientCredentialsSuccessful verifies the happy path for the client credential flow,
 // ensuring a proper access token is issued at the end.
 func TestClientCredentialsSuccessful(t *testing.T) {
@@ -35,25 +49,31 @@ func TestClientCredentialsSuccessful(t *testing.T) {
 	})
 	defer teardown()
 
-	resp := doTokenRequest(t, srvURL, client, "client_credentials", "basic email")
+	resp := doTokenRequest(t, srvURL, &client, "client_credentials", "basic email")
 	defer resp.Body.Close()
 
-	if resp.StatusCode != 200 {
-		t.Errorf("unexpected status code: %d (expected %d)", resp.StatusCode, 200)
-	}
+	verifyResponseOK(t, resp)
+}
 
-	b := make([]byte, resp.ContentLength)
-	if _, err := resp.Body.Read(b); err != nil && err != io.EOF {
-		t.Fatal(err)
-	}
+// TestClientCredentialsInvalidCredentials ensures the client credentials grant type properly
+// rejects when the credentials are not valid.
+func TestClientCredentialsInvalidCredentials(t *testing.T) {
+	srvURL, teardown, client := setupTestServer(t, []authzsrv.Strategy{
+		authzsrv.ClientCredentials{},
+	})
+	defer teardown()
 
-	t.Logf("Response Headers: %#v", resp.Header)
-	t.Logf("Response Body: %s", b)
+	client.Secret = []byte("INVALID")
+
+	resp := doTokenRequest(t, srvURL, &client, "client_credentials", "basic email")
+	defer resp.Body.Close()
+
+	verifyResponseErr(t, resp, authzsrv.ErrInvalidClient)
 }
 
 // setupTestServer builds the server configuration on top of httptest in order to run requests
 // against it. It returns the URL for the test server instance and a teardown function.
-func setupTestServer(t *testing.T, strategies []authzsrv.Strategy) (string, func(), *authzsrv.Client) {
+func setupTestServer(t *testing.T, strategies []authzsrv.Strategy) (string, func(), authzsrv.Client) {
 	c := authzsrv.Client{Name: "3rd party client"}
 	if err := c.GenerateCredentials(); err != nil {
 		t.Fatal(err)
@@ -69,7 +89,7 @@ func setupTestServer(t *testing.T, strategies []authzsrv.Strategy) (string, func
 	}
 
 	httpSrv := httptest.NewServer(srv)
-	return httpSrv.URL, httpSrv.Close, &c
+	return httpSrv.URL, httpSrv.Close, c
 }
 
 // doTokenRequest performs a request to the token endpoint with the provided grantType and scope
@@ -90,4 +110,43 @@ func doTokenRequest(t *testing.T, srvURL string, client *authzsrv.Client, grantT
 
 	t.Logf("%#v\n", resp)
 	return resp
+}
+
+// verifyResponseOK verifies that the http response is a successfull one.
+func verifyResponseOK(t *testing.T, resp *http.Response) {
+	if resp.StatusCode != 200 {
+		t.Fatalf("unexpected status code: %d (expected %d)", resp.StatusCode, 200)
+	}
+
+	tokenResponse := struct {
+		AccessToken  string `json:"access_token"`
+		ExpiresIn    int    `json:"expires_in"`
+		RefreshToken string `json:"refresh_token"`
+	}{}
+	if err := json.NewDecoder(resp.Body).Decode(&tokenResponse); err != nil {
+		t.Fatal(err)
+	}
+
+	if tokenResponse.AccessToken == "" {
+		t.Fatal("access token response does not contain a token")
+	}
+}
+
+// verifyResponseErr verifies that the http response is a error one
+func verifyResponseErr(t *testing.T, resp *http.Response, expectedErr authzsrv.OAuth2Error) {
+	if resp.StatusCode != expectedErr.Code {
+		t.Fatalf("unexpected status code: %d (expected %d)", resp.StatusCode, expectedErr.Code)
+	}
+
+	errResponse := struct {
+		Error     string `json:"error"`
+		ErrorDesc string `json:"error_description"`
+	}{}
+	if err := json.NewDecoder(resp.Body).Decode(&errResponse); err != nil {
+		t.Fatal(err)
+	}
+
+	if errResponse.Error != expectedErr.ID {
+		t.Fatal("unexpected error %s (expected %s)", errResponse.Error, expectedErr.ID)
+	}
 }

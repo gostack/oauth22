@@ -68,6 +68,40 @@ func (s *Server) RegisterStrategy(st Strategy) {
 	}
 }
 
+func (s Server) tokenEndpointHandler(w http.ResponseWriter, req *http.Request) {
+	c, err := s.authenticateClientRequest(req)
+	if err != nil {
+		respondError(w, err)
+		return
+	}
+
+	if err := req.ParseForm(); err != nil {
+		respondError(w, ErrInvalidRequest)
+		return
+	}
+
+	q := req.Form
+	qGrantType := q.Get("grant_type")
+	if qGrantType == "" {
+		respondError(w, ErrUnsupportedGrantType)
+		return
+	}
+
+	grantType, ok := s.grantTypes[qGrantType]
+	if !ok {
+		respondError(w, ErrUnsupportedGrantType)
+		return
+	}
+
+	accessToken, err := grantType.IssueToken(c, q)
+	if err != nil {
+		respondError(w, err)
+		return
+	}
+
+	respondJSON(w, accessToken)
+}
+
 func (s Server) authenticateClientRequest(req *http.Request) (*Client, error) {
 	var textID, textSecret string
 
@@ -111,39 +145,6 @@ func (s Server) authenticateClientRequest(req *http.Request) (*Client, error) {
 	}
 
 	return c, nil
-}
-
-func (s Server) tokenEndpointHandler(w http.ResponseWriter, req *http.Request) {
-	c, err := s.authenticateClientRequest(req)
-	if err != nil {
-		respondError(w, err)
-		return
-	}
-
-	if err := req.ParseForm(); err != nil {
-		respondError(w, ErrInvalidRequest)
-		return
-	}
-
-	q := req.Form
-	qGrantType := q.Get("grant_type")
-	if qGrantType == "" {
-		respondError(w, ErrUnsupportedGrantType)
-		return
-	}
-
-	grantType, ok := s.grantTypes[qGrantType]
-	if !ok {
-		respondError(w, ErrUnsupportedGrantType)
-	}
-
-	accessToken, err := grantType.IssueToken(c, q)
-	if err != nil {
-		respondError(w, err)
-		return
-	}
-
-	respondJSON(w, accessToken)
 }
 
 func respondJSON(w http.ResponseWriter, v interface{}) {
