@@ -23,7 +23,6 @@ import (
 
 	"github.com/satori/go.uuid"
 
-	"github.com/gostack/oauth22"
 	"github.com/gostack/oauth22/security"
 )
 
@@ -69,7 +68,7 @@ func (s *Server) RegisterStrategy(st Strategy) {
 	}
 }
 
-func (s Server) authenticateClientRequest(req *http.Request) (*oauth22.Client, error) {
+func (s Server) authenticateClientRequest(req *http.Request) (*Client, error) {
 	var textID, textSecret string
 
 	if req.Header.Get("Authorization") != "" {
@@ -89,7 +88,7 @@ func (s Server) authenticateClientRequest(req *http.Request) (*oauth22.Client, e
 
 	var (
 		id     uuid.UUID
-		secret oauth22.Secret
+		secret Secret
 	)
 
 	if err := id.UnmarshalText([]byte(textID)); err != nil {

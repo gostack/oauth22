@@ -17,33 +17,32 @@ limitations under the License.
 package authzsrv
 
 import (
-	"github.com/gostack/oauth22"
 	"github.com/satori/go.uuid"
 )
 
 // Persistence is the interface that applications will need to implement in order control
 // persistence & lookup of OAuth2 related records.
 type Persistence interface {
-	// Returns an oauth22.Client or a ErrInvalidClient in case the client ID does not match any existing client.
+	// Returns an Client or a ErrInvalidClient in case the client ID does not match any existing client.
 	// Any other error will be treated as a Internal Server Error.
-	LookupClient(id uuid.UUID) (*oauth22.Client, error)
+	LookupClient(id uuid.UUID) (*Client, error)
 }
 
 // InMemoryPersistence implements the Persistence interface using an in-memory persistence scheme.
 // This is mainly for test purpose and should not be used in production.
 type InMemoryPersistence struct {
-	clients map[uuid.UUID]*oauth22.Client
+	clients map[uuid.UUID]*Client
 }
 
 // NewInMemoryPersistence creates a new InMemoryPersistence and returns a pointer to it.
 func NewInMemoryPersistence() *InMemoryPersistence {
 	return &InMemoryPersistence{
-		clients: make(map[uuid.UUID]*oauth22.Client),
+		clients: make(map[uuid.UUID]*Client),
 	}
 }
 
 // LookupClient returns a client matching the provided id, otherwise returns an error.
-func (p InMemoryPersistence) LookupClient(id uuid.UUID) (*oauth22.Client, error) {
+func (p InMemoryPersistence) LookupClient(id uuid.UUID) (*Client, error) {
 	c, ok := p.clients[id]
 	if !ok {
 		return nil, ErrInvalidClient
@@ -55,6 +54,6 @@ func (p InMemoryPersistence) LookupClient(id uuid.UUID) (*oauth22.Client, error)
 // AUXILIARY METHODS BELOW, NOT PART OF THE INTERFACE
 
 // RegisterClient persists the client
-func (p *InMemoryPersistence) RegisterClient(c *oauth22.Client) {
+func (p *InMemoryPersistence) RegisterClient(c *Client) {
 	p.clients[c.ID] = c
 }

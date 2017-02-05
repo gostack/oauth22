@@ -17,14 +17,14 @@ limitations under the License.
 package authzsrv_test
 
 import (
-	"github.com/gostack/oauth22"
-	"github.com/gostack/oauth22/authzsrv"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"strings"
 	"testing"
+
+	"github.com/gostack/oauth22/authzsrv"
 )
 
 // TestClientCredentialsSuccessful verifies the happy path for the client credential flow,
@@ -53,8 +53,8 @@ func TestClientCredentialsSuccessful(t *testing.T) {
 
 // setupTestServer builds the server configuration on top of httptest in order to run requests
 // against it. It returns the URL for the test server instance and a teardown function.
-func setupTestServer(t *testing.T, strategies []authzsrv.Strategy) (string, func(), *oauth22.Client) {
-	c := oauth22.Client{Name: "3rd party client"}
+func setupTestServer(t *testing.T, strategies []authzsrv.Strategy) (string, func(), *authzsrv.Client) {
+	c := authzsrv.Client{Name: "3rd party client"}
 	if err := c.GenerateCredentials(); err != nil {
 		t.Fatal(err)
 	}
@@ -73,7 +73,7 @@ func setupTestServer(t *testing.T, strategies []authzsrv.Strategy) (string, func
 }
 
 // doTokenRequest performs a request to the token endpoint with the provided grantType and scope
-func doTokenRequest(t *testing.T, srvURL string, client *oauth22.Client, grantType, scope string) *http.Response {
+func doTokenRequest(t *testing.T, srvURL string, client *authzsrv.Client, grantType, scope string) *http.Response {
 	req, err := http.NewRequest("POST", srvURL+"/token", strings.NewReader(url.Values{
 		"grant_type": []string{grantType},
 		"scope":      []string{scope},

@@ -20,23 +20,30 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/gostack/oauth22"
 	"github.com/gostack/option"
 )
 
+// ClientCredentials implement the standard OAuth2 Client Credentials grant type as described by
+// https://tools.ietf.org/html/rfc6749#section-4.4
 type ClientCredentials struct{}
 
+// ResponseType simply registers a nil AuthorizationResponseType for ClientCredentials
 func (c ClientCredentials) ResponseType() (option.String, AuthorizationResponseType) {
 	return option.NoneString(), nil
 }
 
+// GrantType register the client_credentials grant type for ClientCredentials.
 func (s ClientCredentials) GrantType() (option.String, TokenGrantType) {
-	return option.SomeString("client_credentials"), clientCredentialsGrantType{}
+	return option.SomeString("client_credentials"), ClientCredentialsGrantType{}
 }
 
-type clientCredentialsGrantType struct{}
+// ClientCredentialsGranType implements the AuthorizationResponseType to allow for OAuth2's
+// client_credentials grant type.
+type ClientCredentialsGrantType struct{}
 
-func (g clientCredentialsGrantType) IssueToken(c *oauth22.Client, params url.Values) (*oauth22.AccessToken, error) {
+// IssueToken issues a new token for the requesting client as defined by the client credential grant
+// type.
+func (g ClientCredentialsGrantType) IssueToken(c *Client, params url.Values) (*AccessToken, error) {
 	scopes := strings.Split(params.Get("scope"), " ")
-	return oauth22.NewAccessToken(c, scopes)
+	return NewAccessToken(c, scopes)
 }

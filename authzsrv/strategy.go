@@ -17,11 +17,9 @@ limitations under the License.
 package authzsrv
 
 import (
-	"error"
 	"net/http"
 	"net/url"
 
-	"github.com/gostack/oauth22"
 	"github.com/gostack/option"
 )
 
@@ -34,11 +32,11 @@ type Strategy interface {
 
 // AuthorizationResponseType is the interface that represents a valid OAuth2 response type, used by the authorization endpoint.
 type AuthorizationResponseType interface {
-	Confirm(ar *oauth22.UserAuthorizationRequest, w http.ResponseWriter) error
-	Authorize(ar *oauth22.UserAuthorizationRequest) (*oauth22.UserAuthorization, error)
+	Confirm(ar *UserAuthorizationRequest, w http.ResponseWriter) error
+	Authorize(ar *UserAuthorizationRequest) (*UserAuthorization, error)
 }
 
 // TokenGrantType is the interface that represents a valid OAuth2 grant type, used by the token endpoint.
 type TokenGrantType interface {
-	IssueToken(c *oauth22.Client, params url.Values) (*oauth22.AccessToken, error)
+	IssueToken(c *Client, params url.Values) (*AccessToken, error)
 }
