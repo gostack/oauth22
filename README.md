@@ -15,4 +15,4 @@ Rodrigo Rafael Monti Kochenburger
 
 ### License
 
-Apache 2. See [LICENSE.txt](LICENSE.txt)
+Apache 2. See [LICENSE](LICENSE)
