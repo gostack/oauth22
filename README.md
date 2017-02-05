@@ -2,6 +2,13 @@
 
 Documentation to come.
 
+### Roadmap
+
+* [x] Client Credentials grant type
+* [ ] Resource Owner Password Credentials grant type
+* [ ] Resource Owner Password Credentials rate limiting
+* [ ] Authorization Code Grant type
+
 ### Author
 
 Rodrigo Rafael Monti Kochenburger
