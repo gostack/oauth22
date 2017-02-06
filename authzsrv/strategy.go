@@ -26,8 +26,8 @@ import (
 // Strategy wraps the two optional interfaces that constitutes a OAuth2 strategies.
 // Strategies should implement at least one of the interfaces.
 type Strategy interface {
-	ResponseType() (option.String, AuthorizationResponseType)
-	GrantType() (option.String, TokenGrantType)
+	ResponseType(p Persistence) (option.String, AuthorizationResponseType)
+	GrantType(p Persistence) (option.String, TokenGrantType)
 }
 
 // AuthorizationResponseType is the interface that represents a valid OAuth2 response type, used by the authorization endpoint.

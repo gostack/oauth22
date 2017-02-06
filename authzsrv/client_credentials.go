@@ -28,12 +28,12 @@ import (
 type ClientCredentials struct{}
 
 // ResponseType simply registers a nil AuthorizationResponseType for ClientCredentials
-func (c ClientCredentials) ResponseType() (option.String, AuthorizationResponseType) {
+func (c ClientCredentials) ResponseType(_ Persistence) (option.String, AuthorizationResponseType) {
 	return option.NoneString(), nil
 }
 
 // GrantType register the client_credentials grant type for ClientCredentials.
-func (s ClientCredentials) GrantType() (option.String, TokenGrantType) {
+func (s ClientCredentials) GrantType(_ Persistence) (option.String, TokenGrantType) {
 	return option.SomeString("client_credentials"), ClientCredentialsGrantType{}
 }
 
@@ -45,5 +45,5 @@ type ClientCredentialsGrantType struct{}
 // type.
 func (g ClientCredentialsGrantType) IssueToken(c *Client, params url.Values) (*AccessToken, error) {
 	scopes := strings.Split(params.Get("scope"), " ")
-	return NewAccessToken(c, scopes)
+	return NewAccessToken(c, nil, scopes)
 }

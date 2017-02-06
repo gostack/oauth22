@@ -65,8 +65,9 @@ func TestClientCredentials(t *testing.T) {
 
 func TestNewAccessToken(t *testing.T) {
 	c := Client{Name: "Test Client", RedirectURI: "https://example.test/oauth2/callback"}
+	u := User{Username: "foobario", Password: []byte("password")}
 
-	at, err := NewAccessToken(&c, []string{"basic"})
+	at, err := NewAccessToken(&c, &u, []string{"basic"})
 	if err != nil {
 		t.Error(err)
 	}

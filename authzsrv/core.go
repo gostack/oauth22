@@ -25,8 +25,11 @@ import (
 	"github.com/gostack/oauth22/security"
 )
 
-// AbstractUser is an abstract type representing the current user in the system.
-type AbstractUser interface{}
+// User is an type representing the current user in the system.
+type User struct {
+	Username string
+	Password []byte
+}
 
 // Secret is a seq of bytes that knows how to serialize itself
 type Secret []byte
@@ -106,14 +109,15 @@ type UserAuthorization struct {
 // https://tools.ietf.org/html/rfc6749#section-1.4
 type AccessToken struct {
 	Client       *Client       `json:"-"`
+	User         *User         `json:"-"`
+	Scopes       []string      `json:"-"`
 	Token        []byte        `json:"access_token"`
 	ExpiresIn    time.Duration `json:"expires_in"`
 	RefreshToken string        `json:"refresh_token,omitempty"`
-	Scopes       []string      `json:"-"`
 }
 
 // NewAccessToken creates a new AccessToken with the provided information and sensible defaults.
-func NewAccessToken(c *Client, scopes []string) (*AccessToken, error) {
+func NewAccessToken(c *Client, u *User, scopes []string) (*AccessToken, error) {
 	t, err := security.Random(256)
 	if err != nil {
 		return nil, err
@@ -121,6 +125,7 @@ func NewAccessToken(c *Client, scopes []string) (*AccessToken, error) {
 
 	at := AccessToken{
 		Client:    c,
+		User:      u,
 		Token:     t,
 		Scopes:    scopes,
 		ExpiresIn: (24 * time.Hour) * 15,

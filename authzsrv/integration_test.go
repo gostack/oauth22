@@ -30,26 +30,51 @@ import (
 // TestUnsupportedGrantType ensures that clients sending an unsupported grant type will receive the
 // proper error response.
 func TestUnsupportedGrantType(t *testing.T) {
-	srvURL, teardown, client := setupTestServer(t, []authzsrv.Strategy{
+	srvURL, teardown, client, _ := setupTestServer(t, []authzsrv.Strategy{
 		authzsrv.ClientCredentials{},
 	})
 	defer teardown()
 
-	resp := doTokenRequest(t, srvURL, &client, "unsupported", "basic email")
+	resp := doTokenRequest(t, srvURL, &client, url.Values{
+		"grant_type": []string{"unsupported"},
+		"scope":      []string{"basic email"},
+	})
 	defer resp.Body.Close()
 
 	verifyResponseErr(t, resp, authzsrv.ErrUnsupportedGrantType)
 }
 
+// TestResourceOwnerPasswordCredentialsSuccessful verifies the happy path for the Resource Owner
+// Password Credential grant type, ensuring a proper access token is issued at the end.
+func TestResourceOwnerPasswordCredentialsSuccessful(t *testing.T) {
+	srvURL, teardown, client, user := setupTestServer(t, []authzsrv.Strategy{
+		authzsrv.ResourceOwnerPasswordCredentials{},
+	})
+	defer teardown()
+
+	resp := doTokenRequest(t, srvURL, &client, url.Values{
+		"grant_type": []string{"password"},
+		"scope":      []string{"basic email"},
+		"username":   []string{user.Username},
+		"password":   []string{string(user.Password)},
+	})
+	defer resp.Body.Close()
+
+	verifyResponseOK(t, resp)
+}
+
 // TestClientCredentialsSuccessful verifies the happy path for the client credential flow,
 // ensuring a proper access token is issued at the end.
 func TestClientCredentialsSuccessful(t *testing.T) {
-	srvURL, teardown, client := setupTestServer(t, []authzsrv.Strategy{
+	srvURL, teardown, client, _ := setupTestServer(t, []authzsrv.Strategy{
 		authzsrv.ClientCredentials{},
 	})
 	defer teardown()
 
-	resp := doTokenRequest(t, srvURL, &client, "client_credentials", "basic email")
+	resp := doTokenRequest(t, srvURL, &client, url.Values{
+		"grant_type": []string{"client_credentials"},
+		"scope":      []string{"basic email"},
+	})
 	defer resp.Body.Close()
 
 	verifyResponseOK(t, resp)
@@ -58,14 +83,17 @@ func TestClientCredentialsSuccessful(t *testing.T) {
 // TestClientCredentialsInvalidCredentials ensures the client credentials grant type properly
 // rejects when the credentials are not valid.
 func TestClientCredentialsInvalidCredentials(t *testing.T) {
-	srvURL, teardown, client := setupTestServer(t, []authzsrv.Strategy{
+	srvURL, teardown, client, _ := setupTestServer(t, []authzsrv.Strategy{
 		authzsrv.ClientCredentials{},
 	})
 	defer teardown()
 
 	client.Secret = []byte("INVALID")
 
-	resp := doTokenRequest(t, srvURL, &client, "client_credentials", "basic email")
+	resp := doTokenRequest(t, srvURL, &client, url.Values{
+		"grant_type": []string{"client_credentials"},
+		"scope":      []string{"basic email"},
+	})
 	defer resp.Body.Close()
 
 	verifyResponseErr(t, resp, authzsrv.ErrInvalidClient)
@@ -73,14 +101,17 @@ func TestClientCredentialsInvalidCredentials(t *testing.T) {
 
 // setupTestServer builds the server configuration on top of httptest in order to run requests
 // against it. It returns the URL for the test server instance and a teardown function.
-func setupTestServer(t *testing.T, strategies []authzsrv.Strategy) (string, func(), authzsrv.Client) {
+func setupTestServer(t *testing.T, strategies []authzsrv.Strategy) (string, func(), authzsrv.Client, authzsrv.User) {
+	persistence := authzsrv.NewInMemoryPersistence()
+
 	c := authzsrv.Client{Name: "3rd party client"}
 	if err := c.GenerateCredentials(); err != nil {
 		t.Fatal(err)
 	}
-
-	persistence := authzsrv.NewInMemoryPersistence()
 	persistence.RegisterClient(&c)
+
+	u := authzsrv.User{Username: "john", Password: []byte("password")}
+	persistence.RegisterUser(&u)
 
 	srv := authzsrv.NewServer(persistence)
 
@@ -89,15 +120,12 @@ func setupTestServer(t *testing.T, strategies []authzsrv.Strategy) (string, func
 	}
 
 	httpSrv := httptest.NewServer(srv)
-	return httpSrv.URL, httpSrv.Close, c
+	return httpSrv.URL, httpSrv.Close, c, u
 }
 
 // doTokenRequest performs a request to the token endpoint with the provided grantType and scope
-func doTokenRequest(t *testing.T, srvURL string, client *authzsrv.Client, grantType, scope string) *http.Response {
-	req, err := http.NewRequest("POST", srvURL+"/token", strings.NewReader(url.Values{
-		"grant_type": []string{grantType},
-		"scope":      []string{scope},
-	}.Encode()))
+func doTokenRequest(t *testing.T, srvURL string, client *authzsrv.Client, q url.Values) *http.Response {
+	req, err := http.NewRequest("POST", srvURL+"/token", strings.NewReader(q.Encode()))
 	if err != nil {
 		t.Fatal(err)
 	}

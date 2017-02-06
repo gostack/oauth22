@@ -53,14 +53,14 @@ func (s Server) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 }
 
 func (s *Server) RegisterStrategy(st Strategy) {
-	if name, rt := st.ResponseType(); name.IsPresent() {
+	if name, rt := st.ResponseType(s.persistence); name.IsPresent() {
 		if rt == nil {
 			log.Fatal("%T ResponseType() returned name but nil AuthorizationResponseType", st)
 		}
 		s.responseTypes[name.Value()] = rt
 	}
 
-	if name, gt := st.GrantType(); name.IsPresent() {
+	if name, gt := st.GrantType(s.persistence); name.IsPresent() {
 		if gt == nil {
 			log.Fatal("%T GrantType() returned name but nil TokenGrantType", st)
 		}
@@ -132,7 +132,7 @@ func (s Server) authenticateClientRequest(req *http.Request) (*Client, error) {
 		return nil, ErrInvalidRequest
 	}
 
-	c, err := s.persistence.LookupClient(id)
+	c, err := s.persistence.LoadClientFromID(id)
 	if err, ok := err.(*OAuth2Error); ok {
 		return nil, err
 	}
